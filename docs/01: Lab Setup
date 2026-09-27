@@ -1,9 +1,9 @@
-# 01: Lab Setup
+#01: Lab Setup
 
 Goal: a Wazuh manager receiving Windows + Sysmon telemetry from one victim VM.
 Budget ~1 hour. Needs ~8GB free RAM (4GB Windows, 4GB Wazuh).
 
-## 1. Wazuh manager (fastest path: single-node Docker)
+##1. Wazuh manager (fastest path: single-node Docker)
 
 On any Linux host (or an Ubuntu VM):
 
@@ -20,7 +20,7 @@ Dashboard: `https://<host-ip>`, default login `admin` / `SecretPassword`
 Low on RAM? Run only the manager container and read alerts from
 `/var/ossec/logs/alerts/alerts.json` instead of the dashboard.
 
-## 2. Windows victim VM
+##2. Windows victim VM
 
 - Install Windows 10/11 from a free Microsoft evaluation ISO in VirtualBox/VMware.
 - **Sysmon** (rich process/registry/network telemetry):
@@ -39,7 +39,7 @@ Low on RAM? Run only the manager container and read alerts from
   auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
   ```
 
-## 3. Wazuh agent on the victim
+##3.Wazuh agent on the victim
 
 Install the agent (Wazuh dashboard → Agents → Deploy new agent gives you a
 one-line command with your manager IP). Then tell it to forward Sysmon:
@@ -54,7 +54,7 @@ add this to `C:\Program Files (x86)\ossec-agent\ossec.conf` inside `<ossec_confi
 
 Restart the agent service. Confirm it shows **Active** on the dashboard.
 
-## 4. Load the custom rules
+##4Load the custom rules
 
 Append `wazuh/local_rules.xml` to `/var/ossec/etc/rules/local_rules.xml` on the
 manager (Docker: `docker exec -it single-node-wazuh.manager-1 bash`), then:
