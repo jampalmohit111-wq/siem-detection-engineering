@@ -1,74 +1,102 @@
-#01: Lab Setup
+# 01: Lab Setup
 
-Goal: a Wazuh manager receiving Windows + Sysmon telemetry from one victim VM.
-Budget ~1 hour. Needs ~8GB free RAM (4GB Windows, 4GB Wazuh).
+## Goal
 
-##1. Wazuh manager (fastest path: single-node Docker)
+The goal of this lab was to build a small SOC environment for
+endpoint monitoring and detection engineering using Wazuh and
+Sysmon.
 
-On any Linux host (or an Ubuntu VM):
+The environment was used to collect Windows security telemetry,
+generate security events, detect suspicious activity, and investigate
+the resulting alerts.
 
-```bash
-git clone https://github.com/wazuh/wazuh-docker.git -b v4.9.0
-cd wazuh-docker/single-node
-docker compose -f generate-indexer-certs.yml run --rm generator
-docker compose up -d
-```
+## Lab Architecture
 
-Dashboard: `https://<host-ip>`, default login `admin` / `SecretPassword`
-(change it in `docker-compose.yml` before starting for anything non-throwaway).
+Windows Endpoint
+        |
+      Sysmon
+        |
+   Wazuh Agent
+        |
+   Wazuh Manager
+        |
+ Detection Rules
+        |
+ Security Alerts
+        |
+ Investigation
+        |
+ MITRE ATT&CK Mapping
 
-Low on RAM? Run only the manager container and read alerts from
-`/var/ossec/logs/alerts/alerts.json` instead of the dashboard.
+## Environment
 
-##2. Windows victim VM
+### Wazuh
 
-- Install Windows 10/11 from a free Microsoft evaluation ISO in VirtualBox/VMware.
-- **Sysmon** (rich process/registry/network telemetry):
-  ```powershell
-  # from an elevated PowerShell
-  Invoke-WebRequest https://download.sysinternals.com/files/Sysmon.zip -OutFile Sysmon.zip
-  Expand-Archive Sysmon.zip
-  # SwiftOnSecurity config = a sane, well-documented baseline
-  Invoke-WebRequest https://raw.githubusercontent.com/SwiftOnSecurity/sysmon-config/master/sysmonconfig-export.xml -OutFile sysmonconfig.xml
-  .\Sysmon\Sysmon64.exe -accepteula -i sysmonconfig.xml
-  ```
-- Enable the audit policies the Security-log rules need:
-  ```cmd
-  auditpol /set /subcategory:"Logon" /failure:enable
-  auditpol /set /subcategory:"User Account Management" /success:enable
-  auditpol /set /subcategory:"Audit Policy Change" /success:enable /failure:enable
-  ```
+Wazuh was used as the central security monitoring and detection
+platform.
 
-##3.Wazuh agent on the victim
+It was responsible for receiving endpoint telemetry, processing
+security events and generating alerts.
 
-Install the agent (Wazuh dashboard → Agents → Deploy new agent gives you a
-one-line command with your manager IP). Then tell it to forward Sysmon:
-add this to `C:\Program Files (x86)\ossec-agent\ossec.conf` inside `<ossec_config>`:
+### Windows Endpoint
 
-```xml
-<localfile>
-  <location>Microsoft-Windows-Sysmon/Operational</location>
-  <log_format>eventchannel</log_format>
-</localfile>
-```
+A Windows virtual machine was used as the monitored endpoint.
 
-Restart the agent service. Confirm it shows **Active** on the dashboard.
+The Windows system generated the security events used during the
+detection and investigation exercises.
 
-##4Load the custom rules
+### Sysmon
 
-Append `wazuh/local_rules.xml` to `/var/ossec/etc/rules/local_rules.xml` on the
-manager (Docker: `docker exec -it single-node-wazuh.manager-1 bash`), then:
+Sysmon was installed on the Windows endpoint to provide detailed
+telemetry about:
 
-```bash
-/var/ossec/bin/wazuh-control restart
-```
+- Process creation
+- Network connections
+- File activity
+- Registry activity
+- Other relevant endpoint events
 
-## Verify
+### Wazuh Agent
 
-On the victim run `whoami` in PowerShell, then confirm a Sysmon Event ID 1
-appears in the dashboard (Security events, filter `data.win.system.eventID:1`).
-If it lands, the pipeline works. Move on to `02-simulation.md`.
+The Wazuh agent was installed on the Windows endpoint and configured
+to forward relevant security telemetry to the Wazuh Manager.
 
-A single-node Docker manager plus one victim is the smallest setup that
-exercises every rule. Add a domain controller or an attacker Kali VM later if
-you want AD-specific detections.
+## Lab Workflow
+
+1. Configure the Wazuh environment.
+2. Configure the Windows endpoint.
+3. Install and configure Sysmon.
+4. Configure the Wazuh agent.
+5. Generate security events.
+6. Confirm that events are received by Wazuh.
+7. Trigger detection rules.
+8. Investigate generated alerts.
+9. Map relevant activity to MITRE ATT&CK.
+10. Document the investigation results.
+
+## Detection Environment
+
+The lab was used to investigate several Windows security scenarios,
+including suspicious PowerShell activity, local account activity and
+credential-access-related activity.
+
+The individual detection scenarios are documented in the
+`investigations/` directory.
+
+## Evidence
+
+Screenshots from the completed lab are stored in the `screenshots/`
+directory and are used to demonstrate the configuration, generated
+events, alerts and investigation results.
+
+## Lessons Learned
+
+The lab provided practical experience with:
+
+- SIEM monitoring
+- Windows security telemetry
+- Sysmon
+- Wazuh
+- Detection engineering
+- Alert investigation
+- MITRE ATT&CK mapping
